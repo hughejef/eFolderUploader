@@ -9,33 +9,16 @@ from waitress import serve
 
 app = Flask(__name__)
 
-@app.route('/upload', methods=['POST'])
-def upload():
-    try:
-        # Log the incoming request for debugging
-        print("Request JSON:", request.json)
+@app.route('/upload-file', methods=['POST'])
+def upload_file():
+    if 'file' not in request.files:
+        return jsonify({"status": "error", "message": "No file part"}), 400
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({"status": "error", "message": "No selected file"}), 400
+    file.save(f"/home/ec2-user/uploaded_files/{file.filename}")
+    return jsonify({"status": "success", "message": "File uploaded successfully"}), 200
 
-        data = request.json
-        loan_number = data.get("loan_number")
-        placeholder_name = data.get("placeholder_name")
-        file_path = data.get("file_path")
-
-        if not all([loan_number, placeholder_name, file_path]):
-            return jsonify({"status": "error", "message": "Missing required parameters"}), 400
-
-        access_token = get_api_key()
-        loan_guid = get_guid(access_token, loan_number)  # Might raise an exception
-        upload_file_to_encompass(access_token, loan_guid, placeholder_name, file_path)
-        return jsonify({"status": "success", "message": "File uploaded successfully"})
-    
-    except ValueError as ve:
-        # Log specific errors for debugging
-        print("ValueError:", str(ve))
-        return jsonify({"status": "error", "message": str(ve)}), 400
-    except Exception as e:
-        # Catch and log any unexpected exceptions
-        print("Unhandled Exception:", str(e))
-        return jsonify({"status": "error", "message": "Internal Server Error: " + str(e)}), 500
 
 
 
